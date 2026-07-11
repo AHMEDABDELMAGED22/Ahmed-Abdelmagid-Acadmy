@@ -37,8 +37,6 @@ function expectedKinds(counts: GenerateExerciseRequest["counts"]): QuestionKind[
   return [
     ...Array.from({ length: counts.mcq }, () => "mcq" as const),
     ...Array.from({ length: counts.true_false }, () => "true_false" as const),
-    ...Array.from({ length: counts.short_answer }, () => "short_answer" as const),
-    ...Array.from({ length: counts.practical }, () => "practical" as const),
   ];
 }
 
@@ -57,7 +55,7 @@ function schemaFor(kind: QuestionKind) {
   return `{
       "kind": "${kind}",
       "prompt": "scenario or question based only on the lesson content"${options},
-      "correct_answer": "${kind === "true_false" ? "true or false" : "correct answer"}",
+      "correct_answer": "${kind === "true_false" ? "MUST BE EXACT STRING 'true' OR 'false'" : "correct answer"}",
       "explanation": "why the answer is correct",
       "source_excerpt": "short exact idea from the lesson context, not a long quote"
     }`;
@@ -72,9 +70,7 @@ function cleanOption(option: any, index: number): GeneratedOption {
 }
 
 function cleanQuestion(raw: any, fallbackKind: QuestionKind): GeneratedQuestion {
-  const kind = ["mcq", "true_false", "short_answer", "practical"].includes(raw?.kind)
-    ? raw.kind
-    : fallbackKind;
+  const kind = ["mcq", "true_false"].includes(raw?.kind) ? raw.kind : fallbackKind;
 
   return {
     kind,
@@ -152,8 +148,8 @@ export function validateGeneratedQuestions(
 
     if (question.kind === "true_false") {
       const answer = question.correct_answer.toLowerCase();
-      if (!["true", "false", "صح", "خطأ"].includes(answer)) {
-        errors.push(`${prefix}: true_false answer must be true/false or صح/خطأ.`);
+      if (!["true", "false"].includes(answer)) {
+        errors.push(`${prefix}: true_false answer must be EXACTLY 'true' or 'false' (English), even in Arabic mode.`);
       }
     }
 
@@ -180,24 +176,32 @@ export function validateGeneratedQuestions(
   return errors;
 }
 
-export async function generateExerciseQuestions(request: GenerateExerciseRequest) {
-  if (request.lessonContext.trim().length < 500) {
-    throw new Error("Lesson context is required. Extract or paste the lesson content from the PDF first.");
+export async function generateExerciseQuestions(
+  request: GenerateExerciseRequest,
+  options?: { minQuestions?: number }
+) {
+  if (request.lessonContext.trim().length < 200) {
+    throw new Error("Lesson context is required. Add Point, Try, and Exercise content first.");
   }
 
   const kinds = expectedKinds(request.counts);
   const total = kinds.length;
-  if (total === 0) throw new Error("Question count must be greater than zero.");
+  const minQuestions = options?.minQuestions ?? 5;
+  if (total < minQuestions) throw new Error(`Generate at least ${minQuestions} questions (MCQ and True/False only).`);
 
   const system = `You are an expert ICT and computer science instructor creating real secondary-school exercises.
 ${languageRules(request.language)}
 
 QUALITY RULES:
-- Use ONLY the provided lesson context. Do not add outside facts.
+- Use ONLY the provided lesson context (Point, Try, Exercise sections, and topic).
+- The textbook Exercise section is source material — do NOT copy its questions verbatim. Generate a larger assessment that tests deeper understanding.
+- Generate ONLY multiple choice (mcq) and true/false questions.
 - Test understanding, application, comparison, decision-making, and practical thinking.
-- Avoid repeated questions, copied sentence prompts, and definition-only questions.
+- Avoid repeated questions, copied sentence prompts, and definition-only questions like "What is information?"
+- Prefer scenario-based questions like "Which example represents processed information instead of raw data?"
 - MCQ distractors must be plausible and based on common misunderstandings.
-- Practical questions should ask students to reason about a realistic technology situation.
+- For true_false questions, correct_answer MUST ALWAYS be the English word "true" or "false" regardless of language.
+- Every question needs prompt, options (for mcq), correct_answer, explanation, and source_excerpt.
 - Return only valid JSON.
 
 Return this exact JSON shape:
@@ -233,4 +237,47 @@ Return this exact JSON shape:
   }
 
   return questions;
+}
+
+export async function evaluateSemanticAnswers(
+  items: Array<{ question: string; expected: string; studentAnswer: string }>
+): Promise<boolean[]> {
+  if (!items.length) return [];
+  
+  const system = `You are a lenient but accurate teacher grading short answers.
+You will receive a list of questions, the expected correct answer, and the student's answer.
+Determine if the student's answer is conceptually correct. Allow typos, synonyms, partial but correct answers, and rephrasing.
+Return a JSON array of booleans corresponding to each item in order.
+Format: { "results": [true, false, true] }`;
+
+  const prompt = items.map((item, index) => 
+    `Item ${index}:
+Question: ${item.question}
+Expected: ${item.expected}
+Student: ${item.studentAnswer}`
+  ).join("\n\n");
+
+  try {
+    const completion = await client().chat.completions.create({
+      model: MODEL,
+      temperature: 0.1,
+      max_tokens: 1000,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: prompt }
+      ]
+    });
+
+    const content = completion.choices[0]?.message?.content;
+    if (!content) return items.map(() => false);
+    
+    const parsed = JSON.parse(content);
+    const results = Array.isArray(parsed?.results) ? parsed.results : items.map(() => false);
+    // Pad or slice to match items length exactly
+    return items.map((_, i) => Boolean(results[i]));
+  } catch (error) {
+    console.error("Semantic evaluation failed:", error);
+    return items.map(() => false);
+  }
 }

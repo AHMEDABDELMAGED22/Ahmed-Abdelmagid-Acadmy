@@ -1,4 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
+import { StudentAttemptReview } from "@/components/dashboard/student-attempt-review";
 import { createClient } from "@/lib/supabase/server";
 import { formatScore } from "@/lib/utils";
 
@@ -26,13 +27,16 @@ export default async function InstructorResultsPage() {
                 <p className="mt-1 text-sm text-slate-400">{attempt.exercises?.title}</p>
                 <p className="mt-1 text-xs text-slate-500">Attempt {attempt.attempt_number}</p>
               </div>
-              <div className="text-left md:text-right">
+              <div className="text-start md:text-end">
                 <p className={attempt.passed ? "text-emerald-300" : "text-rose-300"}>
                   {attempt.passed ? "Passed" : "Retry needed"}
                 </p>
                 <p className="text-2xl font-semibold text-white">{formatScore(attempt.score)}</p>
               </div>
             </CardContent>
+            <div className="px-5 pb-5">
+              <StudentAttemptReview attempt={attempt} />
+            </div>
           </Card>
         ))}
         {!attempts?.length && (

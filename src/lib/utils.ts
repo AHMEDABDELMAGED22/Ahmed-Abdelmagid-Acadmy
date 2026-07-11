@@ -36,5 +36,9 @@ export function hasArabic(text: string) {
 }
 
 export function hasLatin(text: string) {
-  return /[A-Za-z]/.test(text);
+  let clean = text.replace(/`[^`]*`/g, "");
+  clean = clean.replace(/<\/?[a-z][\s\S]*?>/gi, "");
+  const whitelist = /\b(python|html|css|ip|dns|http|https|ict|ai|pc|cpu|ram|rom|url)\b/gi;
+  clean = clean.replace(whitelist, "");
+  return /[A-Za-z]/.test(clean);
 }

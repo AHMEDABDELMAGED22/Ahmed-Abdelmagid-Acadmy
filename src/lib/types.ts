@@ -1,9 +1,10 @@
 export type UserRole = "student" | "instructor";
 export type CourseStatus = "draft" | "published" | "archived";
 export type VideoProvider = "youtube" | "vimeo" | "bunny" | "mux";
+export type VideoType = "explanation" | "try_solution" | "exercise_solution";
 export type ExerciseStatus = "draft" | "published";
-export type ExerciseKind = "lesson_practice" | "chapter_exam";
-export type QuestionKind = "mcq" | "true_false" | "short_answer" | "practical";
+export type ExerciseKind = "lesson_practice" | "try_practice" | "chapter_exam" | "custom_exam";
+export type QuestionKind = "mcq" | "true_false";
 export type LearningStatus = "locked" | "unlocked" | "in_progress" | "completed";
 export type ContentLanguage = "english" | "arabic";
 
@@ -71,6 +72,7 @@ export interface LessonVideo {
   id: string;
   lesson_id: string;
   provider: VideoProvider;
+  video_type: VideoType;
   original_url: string;
   provider_video_id: string | null;
   embed_url: string | null;
@@ -98,6 +100,8 @@ export interface Exercise {
   description: string | null;
   language: ContentLanguage;
   pass_score: number;
+  time_limit_minutes: number | null;
+  max_attempts: number | null;
   status: ExerciseStatus;
   order_index: number;
   created_by: string | null;
@@ -134,8 +138,11 @@ export interface LessonProgress {
   chapter_id: string;
   lesson_id: string;
   status: LearningStatus;
-  video_completed: boolean;
+  point_completed: boolean;
+  try_completed: boolean;
+  exercise_completed: boolean;
   exercise_passed: boolean;
+  unlocked: boolean;
   best_score: number | null;
   unlocked_at: string | null;
   started_at: string | null;

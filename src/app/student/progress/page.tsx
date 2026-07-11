@@ -1,9 +1,13 @@
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { getI18n } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 import { formatPercent, formatScore } from "@/lib/utils";
 
 export default async function StudentProgressPage() {
+  const { t } = await getI18n();
   const supabase = await createClient();
   const {
     data: { user },
@@ -36,9 +40,9 @@ export default async function StudentProgressPage() {
               <div key={item.id}>
                 <div className="mb-2 flex justify-between text-sm">
                   <span className="text-white">{item.courses?.title}</span>
-                  <span className="text-cyan-200">{formatPercent(item.progress_percentage)}</span>
+                  <span className="text-cyan-200">{formatPercent(item.percentage)}</span>
                 </div>
-                <Progress value={item.progress_percentage} />
+                <Progress value={item.percentage} />
               </div>
             ))}
             {!courseProgress?.length && <p className="text-slate-400">Progress starts after your first lesson.</p>}
@@ -72,9 +76,16 @@ export default async function StudentProgressPage() {
                 <p className="font-medium text-white">{attempt.exercises?.title}</p>
                 <p className="text-sm text-slate-500">Attempt {attempt.attempt_number}</p>
               </div>
-              <div className="text-left md:text-right">
-                <p className={attempt.passed ? "text-emerald-300" : "text-rose-300"}>{attempt.passed ? "Passed" : "Retry"}</p>
-                <p className="font-semibold text-white">{formatScore(attempt.score)}</p>
+              <div className="flex flex-col items-start gap-2 md:items-end">
+                <div className="text-start md:text-end">
+                  <p className={attempt.passed ? "text-emerald-300" : "text-rose-300"}>{attempt.passed ? "Passed" : "Retry"}</p>
+                  <p className="font-semibold text-white">{formatScore(attempt.score)}</p>
+                </div>
+                <Link href={`/student/review/${attempt.id}`}>
+                  <Button variant="secondary" size="sm" className="h-7 text-xs">
+                    {t("review.title")}
+                  </Button>
+                </Link>
               </div>
             </div>
           ))}

@@ -24,6 +24,8 @@ import { useI18n } from "@/lib/i18n/client";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
+import { toast } from "sonner";
+
 type RoleShell = "student" | "instructor";
 
 const nav = {
@@ -59,10 +61,14 @@ export function DashboardShell({
   const items = nav[role];
 
   async function signOut() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/");
-    router.refresh();
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      router.push("/auth/login");
+      router.refresh();
+    } catch {
+      toast.error(t("common.error") || "Error signing out");
+    }
   }
 
   const content = (
@@ -152,7 +158,14 @@ export function DashboardShell({
         {content}
       </aside>
 
-      <main className={cn("min-h-screen px-4 pb-10 pt-20 lg:px-8 lg:pt-8", direction === "rtl" ? "lg:mr-72" : "lg:ml-72")}>{children}</main>
+      <main className={cn("min-h-screen relative flex flex-col", direction === "rtl" ? "lg:mr-72" : "lg:ml-72")}>
+        <header className="hidden h-16 items-center justify-end px-8 lg:flex">
+          <LanguageSwitcher />
+        </header>
+        <div className="flex-1 px-4 pb-10 pt-6 lg:px-8">
+          {children}
+        </div>
+      </main>
     </div>
   );
 }

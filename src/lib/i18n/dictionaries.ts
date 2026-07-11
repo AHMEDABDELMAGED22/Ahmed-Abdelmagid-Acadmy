@@ -214,6 +214,16 @@ export const dictionaries = {
       aiEmpty: "AI returned no content.",
       generationFailed: "Exercise generation failed.",
     },
+    review: {
+      back: "Back to Progress",
+      score: "Score",
+      title: "Review Answers",
+    },
+    lesson: {
+      resources: "Lesson Resources",
+      open: "Open",
+      download: "Download",
+    },
   },
   ar: {
     brand: {
@@ -426,6 +436,16 @@ export const dictionaries = {
       groqMissing: "مفتاح خدمة الذكاء الاصطناعي غير مضبوط.",
       aiEmpty: "لم يرجع الذكاء الاصطناعي أي محتوى.",
       generationFailed: "فشل إنشاء التدريب.",
+    },
+    review: {
+      back: "العودة للتقدم",
+      score: "الدرجة",
+      title: "مراجعة الإجابات",
+    },
+    lesson: {
+      resources: "مصادر الدرس",
+      open: "فتح",
+      download: "تنزيل",
     },
   },
 } as const;

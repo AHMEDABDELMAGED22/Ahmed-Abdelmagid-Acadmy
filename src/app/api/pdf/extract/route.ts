@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { extractTextFromPdf } from "@/lib/pdf/extract";
 
 export async function POST(request: NextRequest) {
@@ -23,12 +23,24 @@ export async function POST(request: NextRequest) {
 
     const form = await request.formData();
     const file = form.get("file");
+    const lessonId = form.get("lessonId") as string;
 
-    if (!(file instanceof File)) {
-      return NextResponse.json({ error: "No PDF file provided." }, { status: 400 });
+    if (!(file instanceof File) || !lessonId) {
+      return NextResponse.json({ error: "No PDF file or lessonId provided." }, { status: 400 });
     }
 
     const text = await extractTextFromPdf(Buffer.from(await file.arrayBuffer()));
+
+    const adminClient = await createAdminClient();
+    const { error: upsertError } = await adminClient
+      .from("lesson_content")
+      .upsert(
+        { lesson_id: lessonId, point_content: text },
+        { onConflict: "lesson_id" }
+      );
+
+    if (upsertError) throw upsertError;
+
     return NextResponse.json({ text, length: text.length });
   } catch (error) {
     return NextResponse.json(

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Sparkles } from "lucide-react";
 import { toast } from "sonner";
@@ -19,6 +19,24 @@ export function GenerateExercisePanel({
   const [language, setLanguage] = useState<"english" | "arabic">("english");
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    // Load existing context
+    fetch(`/api/instructor/lesson-content?lessonId=${lessonId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.text) setLessonContext(data.text);
+      })
+      .catch(console.error);
+
+    // Listen for PDF upload completion
+    const handler = (e: Event) => {
+      const customEvent = e as CustomEvent<string>;
+      setLessonContext(customEvent.detail);
+    };
+    window.addEventListener(`lesson-content-updated-${lessonId}`, handler);
+    return () => window.removeEventListener(`lesson-content-updated-${lessonId}`, handler);
+  }, [lessonId]);
+
   async function generate() {
     setLoading(true);
     try {
@@ -32,10 +50,10 @@ export function GenerateExercisePanel({
           language,
           lessonContext,
           counts: {
-            mcq: 4,
+            mcq: 6,
             true_false: 2,
-            short_answer: 2,
-            practical: 2,
+            short_answer: 0,
+            practical: 0,
           },
         }),
       });
@@ -62,7 +80,9 @@ export function GenerateExercisePanel({
   return (
     <div className="mt-4 rounded-lg border border-cyan-300/20 bg-slate-950/70 p-4">
       <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm font-medium text-cyan-200">Paste official PDF lesson context</p>
+        <div className="flex items-center gap-3">
+          <p className="text-sm font-medium text-cyan-200">Lesson Context</p>
+        </div>
         <select
           value={language}
           onChange={(event) => setLanguage(event.target.value as "english" | "arabic")}
@@ -75,11 +95,11 @@ export function GenerateExercisePanel({
       <textarea
         value={lessonContext}
         onChange={(event) => setLessonContext(event.target.value)}
-        placeholder="Paste the text from this lesson's PDF pages. Minimum 500 characters."
+        placeholder="Lesson context is built from Point, Try, and Exercise content. Minimum 200 characters."
         className="min-h-40 w-full rounded-lg border border-slate-700 bg-slate-950/70 p-3 text-sm text-white outline-none focus:border-cyan-400"
       />
       <div className="mt-3 flex gap-2">
-        <Button onClick={generate} disabled={loading || lessonContext.trim().length < 500}>
+        <Button onClick={generate} disabled={loading || lessonContext.trim().length < 200}>
           {loading ? "Generating..." : "Generate draft"}
         </Button>
         <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>

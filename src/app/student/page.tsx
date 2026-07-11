@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, BookOpenCheck, CheckCircle2, Trophy } from "lucide-react";
+import { ArrowRight, BookOpenCheck, CheckCircle2, Trophy, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -62,8 +62,8 @@ export default async function StudentDashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-semibold text-white">{formatPercent(progress?.progress_percentage || 0)}</p>
-            <Progress value={progress?.progress_percentage || 0} className="mt-4" />
+            <p className="text-3xl font-semibold text-white">{formatPercent(progress?.percentage || 0)}</p>
+            <Progress value={progress?.percentage || 0} className="mt-4" />
           </CardContent>
         </Card>
         <Card>
@@ -96,11 +96,17 @@ export default async function StudentDashboardPage() {
             <p className="text-sm text-cyan-200">Current course</p>
             <h2 className="mt-1 text-xl font-semibold text-white">{course?.title || "Programming and Artificial Intelligence"}</h2>
             <p className="mt-1 text-sm text-slate-400">{course?.subtitle || "Introduction to ICT - First Year Secondary"}</p>
-            {unlocked?.lessons && (
+            {progress?.percentage === 100 ? (
+              <div className="mt-4 inline-flex items-center gap-2 rounded-lg border border-emerald-900/50 bg-emerald-950/40 px-4 py-3 text-sm text-emerald-300">
+                <Award className="h-5 w-5 text-emerald-400" />
+                <span className="font-semibold">Course Completed!</span> 
+                <span className="hidden text-emerald-400/80 sm:inline">You have passed all lessons in this curriculum.</span>
+              </div>
+            ) : unlocked?.lessons ? (
               <p className="mt-4 text-sm text-slate-300">
                 Next lesson: {unlocked.lessons.lesson_code} {unlocked.lessons.title}
               </p>
-            )}
+            ) : null}
           </div>
           <Link href="/student/course">
             <Button>

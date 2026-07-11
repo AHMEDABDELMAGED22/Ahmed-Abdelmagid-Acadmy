@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ICT_CHAPTERS, ICT_COURSE } from "@/lib/curriculum/ict-course";
 import { getI18n } from "@/lib/i18n/server";
+import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 
 export default async function LandingPage() {
   const { t, dictionary } = await getI18n();
@@ -48,6 +49,7 @@ export default async function LandingPage() {
               <span className="font-semibold text-white">{t("brand.short")}</span>
             </Link>
             <div className="flex items-center gap-2">
+              <LanguageSwitcher compact />
               <Link href="/auth/login">
                 <Button variant="ghost" size="sm">{t("common.signIn")}</Button>
               </Link>

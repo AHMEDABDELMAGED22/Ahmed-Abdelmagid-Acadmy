@@ -19,14 +19,14 @@ export default async function InstructorOverviewPage() {
     supabase.from("courses").select("*", { count: "exact", head: true }),
     supabase.from("exercises").select("*", { count: "exact", head: true }),
     supabase.from("exercise_attempts").select("score, passed"),
-    supabase.from("course_progress").select("progress_percentage"),
+    supabase.from("course_progress").select("percentage"),
   ]);
 
   const averageScore = attempts?.length
     ? attempts.reduce((sum, item) => sum + Number(item.score || 0), 0) / attempts.length
     : 0;
   const averageProgress = courseProgress?.length
-    ? courseProgress.reduce((sum, item) => sum + Number(item.progress_percentage || 0), 0) / courseProgress.length
+    ? courseProgress.reduce((sum, item) => sum + Number(item.percentage || 0), 0) / courseProgress.length
     : 0;
 
   const stats = [

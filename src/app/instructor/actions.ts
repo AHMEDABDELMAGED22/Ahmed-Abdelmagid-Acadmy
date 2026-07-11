@@ -39,6 +39,7 @@ export async function saveLessonVideo(formData: FormData) {
   const lessonId = String(formData.get("lessonId") || "");
   const url = String(formData.get("url") || "");
   const provider = (String(formData.get("provider") || "youtube") || "youtube") as VideoProvider;
+  const videoType = String(formData.get("videoType") || "explanation");
 
   if (!lessonId || !url) return;
 
@@ -46,13 +47,34 @@ export async function saveLessonVideo(formData: FormData) {
   await supabase.from("lesson_videos").upsert(
     {
       lesson_id: lessonId,
+      video_type: videoType,
       provider,
       original_url: url,
       provider_video_id: embed.providerVideoId,
       embed_url: embed.embedUrl,
     },
-    { onConflict: "lesson_id" }
+    { onConflict: "lesson_id, video_type" }
   );
 
   revalidatePath("/instructor/courses");
+}
+
+export async function getAttemptAnswers(attemptId: string) {
+  const { supabase } = await requireInstructor();
+  
+  const { data, error } = await supabase
+    .from("exercise_attempt_answers")
+    .select(`
+      id,
+      is_correct,
+      answer_text,
+      feedback,
+      questions ( prompt, correct_answer ),
+      question_options ( option_text )
+    `)
+    .eq("attempt_id", attemptId)
+    .order("created_at", { ascending: true });
+
+  if (error) throw new Error(error.message);
+  return data;
 }

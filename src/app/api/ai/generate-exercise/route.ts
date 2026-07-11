@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateExerciseQuestions } from "@/lib/ai/exercise-generator";
+import { buildLessonContext, suggestedQuestionCounts } from "@/lib/learning/lesson-context";
 import { createClient } from "@/lib/supabase/server";
 import type { GenerateExerciseRequest } from "@/lib/types";
 
@@ -23,7 +24,41 @@ export async function POST(request: NextRequest) {
     }
 
     const body = (await request.json()) as GenerateExerciseRequest;
-    const questions = await generateExerciseQuestions(body);
+
+    let lessonContext = body.lessonContext;
+    let counts = body.counts;
+
+    if (body.lessonId) {
+      const [{ data: contentData }, { data: lessonData }] = await Promise.all([
+        supabase
+          .from("lesson_content")
+          .select("point_content, try_content, exercise_content")
+          .eq("lesson_id", body.lessonId)
+          .maybeSingle(),
+        supabase.from("lessons").select("title").eq("id", body.lessonId).single(),
+      ]);
+
+      if (contentData) {
+        lessonContext = buildLessonContext({
+          title: lessonData?.title,
+          pointContent: contentData.point_content,
+          tryContent: contentData.try_content,
+          exerciseContent: contentData.exercise_content,
+        });
+      }
+
+      if (!counts || counts.mcq + counts.true_false === 0) {
+        const suggested = suggestedQuestionCounts(lessonContext.length);
+        counts = { mcq: suggested.mcq, true_false: suggested.true_false, short_answer: 0, practical: 0 };
+      }
+    }
+
+    const payload = {
+      ...body,
+      lessonContext,
+      counts: { mcq: counts.mcq, true_false: counts.true_false, short_answer: 0, practical: 0 },
+    };
+    const questions = await generateExerciseQuestions(payload);
 
     const { data: scope, error: scopeError } = body.lessonId
       ? await supabase
